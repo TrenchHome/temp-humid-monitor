@@ -2,7 +2,7 @@ import paho.mqtt.client as mqtt
 from DatabaseManager import DataHandler
 
 # MQTT settings
-MQTT_Broker = "140.113.67.247" # test ip address
+MQTT_Broker = "192.168.43.232" # test ip address
 MQTT_Port = 1883
 Keep_Alive_Interval = 45
 MQTT_Topic = "Factory/#" # all topic below Factory
@@ -14,9 +14,9 @@ def on_connect(mosq, obj, flags, rc):
 # save data into DB table
 def on_message(mosq, obj, msg):
 	print ("MQTT Data Received...")
-	print ("MQTT Topic: " + msg.topic )
-	print ("Data: " + str(msg.payload))
-	DataHandler(msg.topic, msg.payload)
+	print ("MQTT Topic: " + msg.topic)
+	print ("Data: " + msg.payload.decode('utf-8'))
+	DataHandler(msg.topic, msg.payload.decode('utf-8')) #convert 'bytes' to 'str'
 
 def on_subscribe(mosq, obj, mid, granted_qos):
 	print ("Subscribed: " + str(mid) + " " + str(granted_qos))
