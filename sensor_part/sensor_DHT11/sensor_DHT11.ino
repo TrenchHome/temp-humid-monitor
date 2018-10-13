@@ -7,12 +7,14 @@
 /***********************************/
 
 /*WiFi connention*/
-const char* WiFi_ssid = "zepheroo";
-const char* WiFi_pswd = "99999999";
+const char* WiFi_ssid = "lifeisajoke";                  //WiFi AP ssid
+const char* WiFi_pswd = "lazyisthebestpolicy";          //WiFi AP pswd
 
 /*MQTT connection*/
-IPAddress MQTT_broker(192,168,43,232);
+IPAddress MQTT_broker(192,168,43,45);                   //MQTT broker ip address
 const int MQTT_port = 1883;
+
+/*****************************************************************************/
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -20,7 +22,8 @@ PubSubClient client(espClient);
 const char* MQTT_clientID = "client_id";
 const char* MQTT_user = "my_user";
 const char* MQTT_pswd = "my_pswd";
-const char* MQTT_topic = "Factory/test";
+const char* MQTT_dht_topic = "Factory/dht";
+const char* MQTT_sensor_topic = "Factory/sensor";
 
 /*Global Variables*/
 unsigned long prevMillis = 0;
@@ -32,8 +35,8 @@ void setup_wifi() {
   delay(10);
   Serial.println("\nWifi connencting to " + String(WiFi_ssid));
   
-  WiFi.begin(WiFi_ssid, WiFi_pswd);  //In ESP8266WiFiSTAClass
-  while(WiFi.status() != WL_CONNECTED) { //status() return wl_status_t object
+  WiFi.begin(WiFi_ssid, WiFi_pswd);
+  while(WiFi.status() != WL_CONNECTED) {  //status() return wl_status_t object
     delay(500);
     Serial.print(".");
   }
@@ -42,8 +45,14 @@ void setup_wifi() {
 
 void reconnect() {
   while(!client.connected()) {
-    if (client.connect(MQTT_clientID, MQTT_user, MQTT_pswd))
+    if (client.connect(MQTT_clientID, MQTT_user, MQTT_pswd)) {
       Serial.println("MQTT-broker connected");
+      if (client.subscribe(MQTT_sensor_topic, 0)) {
+        Serial.print("Subsrcibe topic \"");
+        Serial.print(MQTT_sensor_topic);
+        Serial.println("\" succesfully.\n");
+      }
+    }
     else {
       Serial.println("MQTT-broker connection failed, rc="+ String(client.state())+ " try again in 5 seconds");
       delay(5000);
@@ -52,10 +61,13 @@ void reconnect() {
 }
 
 void callback(const char topic[], byte* payload, unsigned int length) {  
-  Serial.println("*********************\n******\n***");
-  Serial.println(topic);
+  Serial.print("\n*** Message from topic \"");
+  Serial.print(topic);
+  Serial.println("\" ***");
+  Serial.print("*** Msg: \"");
   for (int i=0; i<length; i++)
-    Serial.println( (char)payload[i] );
+    Serial.print( (char)payload[i] );
+  Serial.println("\" ***\n");
 }
 
 void setup() {
@@ -72,10 +84,14 @@ void loop() {
 
   if (millis()-prevMillis >= interval) {
     prevMillis = millis();
-    sprintf(pub_msg, "{\"SensorID\":\"%d\", \"Datetime\":\"%s\", \"Temperature\":\"%.2f\", \"Humidity\":\"%.2f\"}", 1, "now", dht.getTemperature(), dht.getHumidity());
-    Serial.print("message is published: ");
+    sprintf(pub_msg, "{\"SensorID\":\"%d\", \"Datetime\":\"%ld\", \"Temperature\":\"%.2f\", \"Humidity\":\"%.2f\"}", 1, prevMillis, dht.getTemperature(), dht.getHumidity());
+    client.publish(MQTT_dht_topic, pub_msg);
+    Serial.print("Message is published to topic \"");
+    Serial.print(MQTT_dht_topic);
+    Serial.println("\"");
+
+    Serial.print("msg published: ");
     Serial.println(pub_msg);
-    client.publish(MQTT_topic, pub_msg);
   }
 }
 
